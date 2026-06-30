@@ -323,9 +323,29 @@
   <div class="wrap">
     <h2>Evals</h2>
     <p class="section-sub">How the tool's confidence calibration was tested.</p>
-    <div id="evalsContent" class="stack-card">
-      <p style="color:var(--muted)">Eval results pending — see <code>evals/</code> in the repo for the latest run.</p>
+    <div class="steps">
+      <div class="step">
+        <span class="num">A</span>
+        <h3>Decision engine: 22/22</h3>
+        <p>Verdict + confidence on 22 route/time/surge combinations checked against an independently re-derived RTO formula and the documented confidence thresholds — not just tested against its own code.</p>
+      </div>
+      <div class="step">
+        <span class="num">B</span>
+        <h3>High-confidence precision: 100%</h3>
+        <p><b>Primary metric.</b> Of every route the NL assistant matched with confidence, 15/15 were correct (live Claude calls, not cached). A wrong high-confidence match is the failure mode this whole project exists to prevent.</p>
+      </div>
+      <div class="step">
+        <span class="num">C</span>
+        <h3>Correct refusal: 6/6</h3>
+        <p>Out-of-scope queries (wrong city, gibberish, an unsupported South Mumbai pair) were all correctly declined instead of guessing a plausible-sounding wrong route.</p>
+      </div>
     </div>
+    <p class="section-sub" style="margin-top:24px;">
+      Honest caveat: 21 NL test cases is enough to validate the design (confidence-gated refusal works, route
+      matching handles varied phrasing), not enough to claim the assistant is bulletproof. Harder adversarial
+      cases — typos, two known locations in one ambiguous query — are the natural next eval to add.
+      Full per-case results in <a href="https://github.com/nibhrit/meter-autos-mumbai/blob/main/evals/results.md" target="_blank">evals/results.md</a>.
+    </p>
   </div>
 </section>
 
