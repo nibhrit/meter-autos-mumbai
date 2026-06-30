@@ -2,6 +2,9 @@
 
 A Mumbai ride-fare decision tool — should you take a street meter auto, or open Uber/Ola/Rapido?
 
+**Live demo:** https://nibhrit.github.io/meter-autos-mumbai/
+**API:** https://meter-autos-api.onrender.com (free-tier Render — first request after idle may take ~30-60s to wake up)
+
 Portfolio prototype by Nibhrit Mohanty (MBA, IIM Mumbai / former PayPal SDE). Not affiliated with
 Uber, Ola, Rapido, or any transport authority. See [CLAUDE.md](CLAUDE.md) for the full spec.
 
@@ -18,8 +21,9 @@ plain "toss-up, here's your surge-proof anchor" when they're not.
 - **Fare engine** (`backend/fare_engine.py`) — deterministic Mumbai RTO meter math + modeled app fares
 - **Decision logic** (`backend/decision.py`) — verdict + calibrated confidence + zone/surge handling
 - **NL assistant** (`backend/assistant.py`) — Claude front door; never computes a fare, only translates
-- **API** (`backend/main.py`) — FastAPI, `/routes`, `/decide`, `/ask`
-- **Frontend** — single-page demo (in progress)
+- **API** (`backend/main.py`) — FastAPI, `/routes`, `/decide`, `/ask`. Deployed on Render via [`render.yaml`](render.yaml).
+- **Frontend** (`frontend/index.html`) — single-page demo. Deployed on GitHub Pages via Actions.
+- **Evals** (`evals/`) — decision engine regression suite + live NL assistant precision eval. See [`evals/results.md`](evals/results.md).
 
 ## Running locally
 
