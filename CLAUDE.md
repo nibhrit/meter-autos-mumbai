@@ -64,7 +64,19 @@ Meter Autos/
 **App fare models (modeled, not live):**
 - App *autos* (Uber/Ola/Rapido Auto) ≈ RTO meter fare + flat platform fee (₹5–8) — gap vs street is tiny.
 - App *cars* (UberGo/Ola Mini) have high min fares (~₹60–100) — this is the real short-trip gap.
-- Surge is a scenario multiplier (1.0× / 1.3× / 1.5×+) applied to app fares only; meter is surge-proof.
+- Surge multiplier applies to app fares only; the meter is surge-proof. Surge is **predicted** (see below),
+  not user-guessed and not claimed as live/real-time.
+
+**Surge prediction (v2, `surge.py`):** Predicted *likelihood*, not live actual surge (which has no public
+source — that's the hard problem we scoped out). Inferred from time-of-day (rush hours), day-of-week, and
+live weather (rain → higher surge, via keyless Open-Meteo). Always labeled as a prediction. Manual override
+kept for scenario exploration. Rationale: forcing the user to guess surge (v1's slider) made no sense; a
+labeled prediction is more honest than a manual input AND than claiming "real-time."
+
+**Routing (v2, `geo.py`):** Arbitrary Mumbai routes via free OpenStreetMap services — Photon (geocode/
+autocomplete) + OSRM (road distance). No Google, no billing account, no API key. The no-auto zone is a
+hardcoded South-Mumbai polygon (point-in-polygon), replacing the per-preset boolean. Preset routes kept as
+quick examples + offline fallback.
 
 **Zone rule:** Autos are banned south of Bandra (W) / Sion — all of South Mumbai is auto-free. The tool
 must flag when a route enters the no-auto zone and suppress the auto recommendation there.
@@ -93,12 +105,16 @@ must flag when a route enters the no-auto zone and suppress the auto recommendat
 - Single-page frontend: problem hero → how it works → stack cards → live demo → evals.
 - Disclaimer strip on the frontend.
 
-**Explicitly out of scope for v1:**
+**Explicitly out of scope:**
 - Live app-fare scraping or official APIs (modeled instead — flagged as the real hard problem).
-- Live maps / geocoding (curated presets instead).
+- Live/real-time *actual* surge feeds (no public source; we predict likelihood instead — see surge.py).
 - In-app booking / deep links (may show, not core).
-- Real-time surge feeds (surge is a user-selectable scenario).
+- Google Maps (using free OSM services instead — no billing account/key needed).
 - Cities other than Mumbai; auth; accounts; persistence.
+
+**Frontend theming:** Light/dark toggle, **default dark**. Dark = "Street Meter" (charcoal + black/yellow
+auto livery, sans). Light = "Public Utility" (warm paper, serif headings, civic green — reinforces the
+honesty thesis). One codebase, `[data-theme]` + CSS variables.
 
 ---
 

@@ -63,9 +63,14 @@ def _car_tier_insight(meter: float, app_options: list[FareQuote]) -> Optional[st
     return None
 
 
-def decide(route_id: str, time_of_day: TimeOfDay = TimeOfDay.DAY, surge: float = 1.0) -> Decision:
-    route = get_route(route_id)
-    fares = all_fares(route.distance_km, time_of_day, surge)
+def decide_core(distance_km: float, zone_restricted: bool, dest_name: str,
+                time_of_day: TimeOfDay = TimeOfDay.DAY, surge: float = 1.0) -> Decision:
+    """
+    The actual decision logic, working from a raw distance + zone flag so it
+    serves both preset routes and arbitrary geocoded routes. decide() wraps this
+    for presets; the /decide_route API path calls it with OSM-derived inputs.
+    """
+    fares = all_fares(distance_km, time_of_day, surge)
     meter = fares["meter_fare"]
     app_options = fares["app_options"]
     cheapest_app = _cheapest(app_options)
@@ -77,7 +82,7 @@ def decide(route_id: str, time_of_day: TimeOfDay = TimeOfDay.DAY, surge: float =
             f"is government-fixed and does not change with surge."
         )
 
-    if route.zone_restricted:
+    if zone_restricted:
         # Autos aren't a legal option here — no auto-vs-app race to call.
         return Decision(
             verdict=f"Auto not available — book {cheapest_app.provider}",
@@ -86,11 +91,11 @@ def decide(route_id: str, time_of_day: TimeOfDay = TimeOfDay.DAY, surge: float =
             app_options=app_options,
             savings=0.0,
             reasoning=(
-                f"{route.destination} is south of the Bandra (W) / Sion line — Mumbai's "
+                f"{dest_name} is south of the Bandra (W) / Sion line — Mumbai's "
                 f"auto-rickshaw-free zone. Only app cars/autos operate here."
             ),
             surge_proof_note=surge_note,
-            zone_flag=f"{route.destination} is in the no-auto zone (South Mumbai / Island City).",
+            zone_flag=f"{dest_name} is in the no-auto zone (South Mumbai / Island City).",
         )
 
     car_insight = _car_tier_insight(meter, app_options)
@@ -131,6 +136,12 @@ def decide(route_id: str, time_of_day: TimeOfDay = TimeOfDay.DAY, surge: float =
         zone_flag=None,
         car_tier_insight=car_insight,
     )
+
+
+def decide(route_id: str, time_of_day: TimeOfDay = TimeOfDay.DAY, surge: float = 1.0) -> Decision:
+    """Preset-route wrapper around decide_core (back-compat with v1 / evals)."""
+    route = get_route(route_id)
+    return decide_core(route.distance_km, route.zone_restricted, route.destination, time_of_day, surge)
 
 
 if __name__ == "__main__":
