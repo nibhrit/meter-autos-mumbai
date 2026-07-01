@@ -1,204 +1,203 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Meter Autos — Mumbai Ride-Fare Decision Tool</title>
 <style>
   :root {
-    --bg: #0f1115;
-    --panel: #161922;
-    --panel-2: #1d212c;
-    --border: #2a2f3d;
-    --text: #e7e9ee;
+    /* Dark = "Street Meter" (default) */
+    --bg: #14161c;
+    --surface: #1c1f28;
+    --surface-2: #232734;
+    --border: #2c313d;
+    --text: #f2f3f6;
     --muted: #9aa1b2;
-    --yellow: #f4c430;
-    --black: #0a0a0a;
-    --green: #3ecf8e;
-    --amber: #e0a526;
-    --red: #e2645a;
+    --accent: #f4c430;
+    --accent-text: #14161c;
+    --font-heading: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    --conf-high: #3ecf8e; --conf-high-bg: rgba(62,207,142,0.10);
+    --conf-med: #e0a526;  --conf-med-bg: rgba(224,165,38,0.10);
+    --conf-low: #9aa1b2;
     --radius: 12px;
+  }
+  html[data-theme="light"] {
+    /* Light = "Public Utility" */
+    --bg: #f6f3ea;
+    --surface: #ffffff;
+    --surface-2: #f1ece0;
+    --border: #e3dccb;
+    --text: #23201a;
+    --muted: #6b6355;
+    --accent: #1f5c3d;
+    --accent-text: #ffffff;
+    --font-heading: Georgia, "Times New Roman", serif;
+    --conf-high: #1f7a4d; --conf-high-bg: rgba(31,122,77,0.08);
+    --conf-med: #b9791a;  --conf-med-bg: rgba(185,121,26,0.10);
+    --conf-low: #8a7f68;
   }
   * { box-sizing: border-box; }
   body {
-    margin: 0;
-    background: var(--bg);
-    color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
-    line-height: 1.55;
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: var(--font-body); line-height: 1.55;
+    transition: background .2s, color .2s;
   }
-  a { color: var(--yellow); }
+  h1, h2, h3 { font-family: var(--font-heading); }
+  a { color: var(--accent); }
   .wrap { max-width: 980px; margin: 0 auto; padding: 0 24px; }
 
-  /* Disclaimer strip */
   .disclaimer {
-    background: var(--black);
-    color: var(--muted);
-    font-size: 13px;
-    text-align: center;
-    padding: 8px 16px;
-    border-bottom: 1px solid var(--border);
+    background: #0a0a0a; color: #9aa1b2; font-size: 13px; text-align: center;
+    padding: 8px 16px; border-bottom: 1px solid var(--border);
   }
-  .disclaimer strong { color: var(--yellow); }
+  .disclaimer strong { color: var(--accent); }
 
-  /* Hero */
-  header.hero {
-    padding: 72px 0 48px;
-    text-align: center;
-    background: linear-gradient(180deg, rgba(244,196,48,0.06), transparent 60%);
+  .topbar { position: sticky; top: 0; z-index: 50; background: var(--bg); border-bottom: 1px solid var(--border); }
+  .topbar .wrap { display: flex; align-items: center; justify-content: space-between; padding-top: 12px; padding-bottom: 12px; }
+  .brand { font-family: var(--font-heading); font-weight: 700; font-size: 16px; }
+  .brand .dot { color: var(--accent); }
+  .topbar-actions { display: flex; gap: 10px; align-items: center; }
+  .theme-toggle, .cta {
+    border: 1px solid var(--border); background: var(--surface); color: var(--text);
+    padding: 8px 14px; border-radius: 999px; font-size: 13px; cursor: pointer; font-family: var(--font-body);
   }
+  .cta { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 600; }
+  .cta:hover { filter: brightness(1.05); }
+  .theme-toggle:hover { border-color: var(--muted); }
+
+  header.hero { padding: 64px 0 44px; text-align: center; }
   .badge {
-    display: inline-block;
-    background: var(--yellow);
-    color: var(--black);
-    font-weight: 700;
-    font-size: 12px;
-    letter-spacing: .04em;
-    text-transform: uppercase;
-    padding: 5px 12px;
-    border-radius: 999px;
-    margin-bottom: 18px;
+    display: inline-block; background: var(--accent); color: var(--accent-text);
+    font-weight: 700; font-size: 12px; letter-spacing: .04em; text-transform: uppercase;
+    padding: 5px 12px; border-radius: 999px; margin-bottom: 18px;
   }
-  h1 {
-    font-size: clamp(28px, 5vw, 44px);
-    margin: 0 0 16px;
-    letter-spacing: -0.02em;
-  }
-  .hero p.sub {
-    color: var(--muted);
-    font-size: 18px;
-    max-width: 640px;
-    margin: 0 auto;
-  }
+  h1 { font-size: clamp(28px, 5vw, 44px); margin: 0 0 16px; letter-spacing: -0.02em; font-weight: 500; }
+  .hero p.sub { color: var(--muted); font-size: 18px; max-width: 640px; margin: 0 auto 24px; }
   .hero .thesis {
-    margin: 28px auto 0;
-    max-width: 700px;
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 18px 22px;
-    font-size: 15px;
-    color: var(--text);
-    text-align: left;
+    margin: 8px auto 0; max-width: 700px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 18px 22px; font-size: 15px; text-align: left;
   }
-  .hero .thesis b { color: var(--yellow); }
+  .hero .thesis b { color: var(--accent); }
 
-  section { padding: 56px 0; border-top: 1px solid var(--border); }
-  h2 { font-size: 26px; margin-bottom: 8px; }
-  .section-sub { color: var(--muted); margin-bottom: 32px; max-width: 640px; }
+  section { padding: 52px 0; border-top: 1px solid var(--border); }
+  h2 { font-size: 26px; margin-bottom: 8px; font-weight: 500; }
+  .section-sub { color: var(--muted); margin-bottom: 28px; max-width: 660px; }
 
-  /* How it works */
-  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
   @media (max-width: 760px) { .steps { grid-template-columns: 1fr; } }
-  .step {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 20px;
-  }
+  .step { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
   .step .num {
-    display: inline-flex; align-items: center; justify-content: center;
-    width: 28px; height: 28px; border-radius: 50%;
-    background: var(--yellow); color: var(--black); font-weight: 700; font-size: 14px;
-    margin-bottom: 12px;
+    display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px;
+    border-radius: 50%; background: var(--accent); color: var(--accent-text); font-weight: 700; font-size: 14px; margin-bottom: 12px;
   }
-  .step h3 { margin: 0 0 8px; font-size: 16px; }
+  .step h3 { margin: 0 0 8px; font-size: 16px; font-weight: 500; }
   .step p { margin: 0; color: var(--muted); font-size: 14px; }
 
-  /* Stack cards */
   .stack-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
   @media (max-width: 760px) { .stack-grid { grid-template-columns: 1fr; } }
-  .stack-card {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 18px 20px;
-  }
-  .stack-card .layer { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--yellow); font-weight: 700; }
-  .stack-card h3 { margin: 6px 0 8px; font-size: 16px; }
+  .stack-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; }
+  .stack-card .layer { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--accent); font-weight: 700; }
+  .stack-card h3 { margin: 6px 0 8px; font-size: 16px; font-weight: 500; }
   .stack-card p { margin: 0; color: var(--muted); font-size: 14px; }
+  code { background: var(--surface-2); padding: 1px 5px; border-radius: 4px; font-size: 12.5px; }
 
-  /* Demo */
-  .demo-panel {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 24px;
-  }
+  .demo-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; }
   .demo-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
   .demo-tab {
-    background: var(--panel-2); border: 1px solid var(--border); color: var(--muted);
-    padding: 8px 16px; border-radius: 999px; font-size: 14px; cursor: pointer;
+    background: var(--surface-2); border: 1px solid var(--border); color: var(--muted);
+    padding: 8px 16px; border-radius: 999px; font-size: 14px; cursor: pointer; font-family: var(--font-body);
   }
-  .demo-tab.active { background: var(--yellow); color: var(--black); border-color: var(--yellow); font-weight: 600; }
-  .field-row { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 12px; margin-bottom: 16px; }
-  @media (max-width: 600px) { .field-row { grid-template-columns: 1fr; } }
+  .demo-tab.active { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 600; }
+
   label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
-  select, input[type=text] {
-    width: 100%; background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
-    padding: 10px 12px; border-radius: 8px; font-size: 14px;
+  input[type=text], select {
+    width: 100%; background: var(--surface-2); border: 1px solid var(--border); color: var(--text);
+    padding: 10px 12px; border-radius: 8px; font-size: 14px; font-family: var(--font-body);
   }
+  .route-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 600px) { .route-fields { grid-template-columns: 1fr; } }
+  .ac-wrap { position: relative; }
+  .ac-list {
+    position: absolute; top: 100%; left: 0; right: 0; z-index: 20; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 8px; margin-top: 4px; max-height: 220px; overflow-y: auto;
+  }
+  .ac-item { padding: 9px 12px; font-size: 13px; cursor: pointer; border-bottom: 1px solid var(--border); }
+  .ac-item:last-child { border-bottom: none; }
+  .ac-item:hover { background: var(--surface-2); }
+  .ac-item .nm { color: var(--text); }
+  .ac-item .sub { color: var(--muted); font-size: 12px; }
+
+  .examples { margin: 14px 0 6px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .examples .lbl { font-size: 12px; color: var(--muted); margin-right: 2px; }
+  .chip {
+    background: var(--surface-2); border: 1px solid var(--border); color: var(--text);
+    padding: 5px 11px; border-radius: 999px; font-size: 12.5px; cursor: pointer; font-family: var(--font-body);
+  }
+  .chip:hover { border-color: var(--accent); }
+
+  .adv-toggle { margin: 16px 0 0; font-size: 13px; color: var(--accent); cursor: pointer; background: none; border: none; padding: 0; font-family: var(--font-body); }
+  .adv-panel { margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--border); display: none; }
+  .adv-panel.open { display: block; }
+  .adv-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 600px) { .adv-row { grid-template-columns: 1fr; } }
+
   button.primary {
-    background: var(--yellow); color: var(--black); border: none; font-weight: 700;
-    padding: 11px 22px; border-radius: 8px; font-size: 14px; cursor: pointer;
+    background: var(--accent); color: var(--accent-text); border: none; font-weight: 700;
+    padding: 11px 22px; border-radius: 8px; font-size: 14px; cursor: pointer; margin-top: 18px; font-family: var(--font-body);
   }
-  button.primary:disabled { opacity: .5; cursor: default; }
+  button.primary:disabled { opacity: .45; cursor: default; }
   button.primary:hover:not(:disabled) { filter: brightness(1.05); }
 
   .ask-row { display: flex; gap: 10px; }
   .ask-row input { flex: 1; }
 
   .result { margin-top: 22px; }
-  .verdict-card {
-    border-radius: var(--radius);
-    padding: 18px 20px;
-    border: 1px solid var(--border);
-    background: var(--panel-2);
-  }
-  .verdict-card.conf-high { border-color: var(--green); background: rgba(62,207,142,0.08); }
-  .verdict-card.conf-medium { border-color: var(--amber); background: rgba(224,165,38,0.08); }
-  .verdict-card.conf-low { border-color: var(--muted); }
-  .verdict-card.conf-na { border-color: var(--border); }
-  .conf-pill {
-    display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase;
-    letter-spacing: .04em; padding: 3px 9px; border-radius: 999px; margin-bottom: 10px;
-  }
-  .conf-high .conf-pill { background: var(--green); color: #06241a; }
-  .conf-medium .conf-pill { background: var(--amber); color: #2a1c00; }
-  .conf-low .conf-pill { background: var(--border); color: var(--muted); }
-  .conf-na .conf-pill { background: var(--border); color: var(--muted); }
+  .verdict-card { border-radius: var(--radius); padding: 18px 20px; border: 1px solid var(--border); background: var(--surface-2); }
+  .verdict-card.conf-high { border-color: var(--conf-high); background: var(--conf-high-bg); }
+  .verdict-card.conf-medium { border-color: var(--conf-med); background: var(--conf-med-bg); }
+  .conf-pill { display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; padding: 3px 9px; border-radius: 999px; margin-bottom: 10px; background: var(--border); color: var(--muted); }
+  .conf-high .conf-pill { background: var(--conf-high); color: #04241a; }
+  .conf-medium .conf-pill { background: var(--conf-med); color: #2a1c00; }
   .verdict-text { font-size: 17px; font-weight: 600; margin: 0 0 10px; }
   .reasoning { color: var(--muted); font-size: 14px; margin: 0 0 10px; }
+  .meta-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+  .meta-tag { font-size: 12px; padding: 4px 10px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); color: var(--muted); }
+  .meta-tag b { color: var(--text); font-weight: 600; }
   .note { font-size: 13px; padding: 9px 12px; border-radius: 8px; margin-top: 8px; }
-  .note.surge { background: rgba(244,196,48,0.08); color: var(--yellow); }
-  .note.car-trap { background: rgba(226,100,90,0.08); color: var(--red); }
-  .note.zone { background: rgba(154,161,178,0.1); color: var(--muted); }
+  .note.surge { background: var(--conf-med-bg); color: var(--conf-med); }
+  .note.car-trap { background: rgba(226,100,90,0.10); color: #e2645a; }
+  .note.zone { background: var(--surface); color: var(--muted); border: 1px solid var(--border); }
 
   .fare-table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 13px; }
   .fare-table th, .fare-table td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--border); }
   .fare-table th { color: var(--muted); font-weight: 500; text-transform: uppercase; font-size: 11px; letter-spacing: .03em; }
-  .fare-table .official { color: var(--yellow); font-weight: 700; }
+  .fare-table .official { color: var(--accent); font-weight: 700; }
   .fare-table .tag { font-size: 10px; color: var(--muted); }
 
-  .reply-box {
-    background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius);
-    padding: 16px 18px; margin-top: 14px; font-size: 14px;
-  }
+  .reply-box { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; margin-top: 14px; font-size: 14px; }
   .loading { color: var(--muted); font-size: 14px; }
-  .error-box { color: var(--red); font-size: 14px; margin-top: 10px; }
+  .error-box { color: #e2645a; font-size: 14px; margin-top: 10px; }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 8px; }
 
   footer { padding: 32px 0; text-align: center; color: var(--muted); font-size: 13px; }
   footer a { color: var(--muted); text-decoration: underline; }
-
-  #apiBaseNotice {
-    font-size: 12px; color: var(--muted); margin-top: 10px;
-  }
 </style>
 </head>
 <body>
 
 <div class="disclaimer">
-  Work sample built by <strong>Nibhrit Mohanty</strong> — Not affiliated with Uber, Ola, Rapido, or any transport authority. App fares shown are modeled estimates, not live prices.
+  Work sample built by <strong>Nibhrit Mohanty</strong> — Not affiliated with Uber, Ola, Rapido, or any transport authority. App fares are modeled estimates; surge is predicted, not live.
+</div>
+
+<div class="topbar">
+  <div class="wrap">
+    <span class="brand">Meter Autos<span class="dot">.</span></span>
+    <div class="topbar-actions">
+      <button class="theme-toggle" id="themeBtn" onclick="toggleTheme()" aria-label="Toggle light/dark">Light mode</button>
+      <button class="cta" onclick="document.getElementById('demo').scrollIntoView({behavior:'smooth'})">Go to demo</button>
+    </div>
+  </div>
 </div>
 
 <header class="hero">
@@ -206,12 +205,13 @@
     <span class="badge">PM Portfolio Prototype</span>
     <h1>Auto, or open the app?</h1>
     <p class="sub">A Mumbai ride-fare decision tool that's honest about when it actually knows the answer.</p>
+    <button class="cta" onclick="document.getElementById('demo').scrollIntoView({behavior:'smooth'})">Try the demo →</button>
     <div class="thesis">
       Mumbai's auto-rickshaw meter is <b>government-fixed and published</b> — exact, surge-proof, no guessing.
-      Uber/Ola/Rapido pricing is <b>proprietary and dynamic</b> — it can only ever be estimated. Most comparison
-      tools blur that line and give you a confident-looking number either way. This one doesn't: a strong
-      verdict when the gap is wide, a plain <b>"toss-up"</b> when it isn't — with the surge-proof meter as your
-      anchor exactly when app prices are least trustworthy.
+      Uber/Ola/Rapido pricing is <b>proprietary and dynamic</b> — it can only ever be estimated. Most tools
+      blur that line and hand you a confident number either way. This one doesn't: a strong verdict when the
+      gap is wide, a plain <b>"toss-up"</b> when it isn't — with the surge-proof meter as your anchor exactly
+      when app prices are least trustworthy.
     </div>
   </div>
 </header>
@@ -219,22 +219,86 @@
 <section id="how">
   <div class="wrap">
     <h2>How it works</h2>
-    <p class="section-sub">Three steps, two of them deterministic.</p>
+    <p class="section-sub">Three steps — the two that touch money are deterministic.</p>
     <div class="steps">
       <div class="step">
         <span class="num">1</span>
         <h3>Exact meter math</h3>
-        <p>₹26 minimum (first 1.5km) + ₹17.14/km, +25% night surcharge — the actual Maharashtra RTO tariff, computed exactly. No model, no guess.</p>
+        <p>₹26 minimum (first 1.5km) + ₹17.14/km, +25% night — the actual Maharashtra RTO tariff, computed exactly on the real road distance. No model, no guess.</p>
       </div>
       <div class="step">
         <span class="num">2</span>
-        <h3>Modeled app fares</h3>
-        <p>Uber/Ola/Rapido don't publish rate cards, so app-auto and app-car fares are estimated from typical observed pricing — and labeled as estimates, not facts.</p>
+        <h3>Modeled app fares + predicted surge</h3>
+        <p>App fares estimated from published rate cards. Surge isn't guessed by you — it's predicted from time, day, and live weather, and clearly labeled as a prediction.</p>
       </div>
       <div class="step">
         <span class="num">3</span>
         <h3>Confidence-calibrated verdict</h3>
         <p>The gap between meter and cheapest app option decides confidence — not the rupee amount. Small gap = "toss-up," not a false-sure recommendation.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="demo">
+  <div class="wrap">
+    <h2>Live demo</h2>
+    <p class="section-sub">Type any Mumbai pickup and drop, or just ask in plain language.</p>
+
+    <div class="demo-panel">
+      <div class="demo-tabs">
+        <button class="demo-tab active" data-tab="route" onclick="switchTab('route')">Route</button>
+        <button class="demo-tab" data-tab="ask" onclick="switchTab('ask')">Ask in plain language</button>
+      </div>
+
+      <div id="tab-route">
+        <div class="route-fields">
+          <div class="ac-wrap">
+            <label for="originInput">Pickup</label>
+            <input type="text" id="originInput" autocomplete="off" placeholder="e.g. Andheri Station" oninput="onAcInput('origin')" />
+            <div class="ac-list" id="origin-list" style="display:none;"></div>
+          </div>
+          <div class="ac-wrap">
+            <label for="destInput">Drop</label>
+            <input type="text" id="destInput" autocomplete="off" placeholder="e.g. BKC" oninput="onAcInput('dest')" />
+            <div class="ac-list" id="dest-list" style="display:none;"></div>
+          </div>
+        </div>
+
+        <div class="examples">
+          <span class="lbl">Try:</span>
+          <button class="chip" onclick="loadExample(0)">Andheri Station → BKC (short)</button>
+          <button class="chip" onclick="loadExample(1)">Kurla → Powai (medium)</button>
+          <button class="chip" onclick="loadExample(2)">Dadar → Colaba (no-auto zone)</button>
+        </div>
+
+        <button class="adv-toggle" onclick="toggleAdv()" id="advToggle">Advanced ▾</button>
+        <div class="adv-panel" id="advPanel">
+          <div class="adv-row">
+            <div>
+              <label for="timeSelect">Time of day</label>
+              <select id="timeSelect"><option value="">Now (auto)</option><option value="day">Day</option><option value="night">Night (12–5am)</option></select>
+            </div>
+            <div>
+              <label for="surgeSelect">Surge</label>
+              <select id="surgeSelect"><option value="">Predicted (auto)</option><option value="1.0">Override: 1.0×</option><option value="1.3">Override: 1.3×</option><option value="1.5">Override: 1.5×</option><option value="2.0">Override: 2.0×</option></select>
+            </div>
+          </div>
+          <p class="hint">By default, surge is predicted from time + day + live Mumbai weather. Override it here to explore scenarios.</p>
+        </div>
+
+        <button class="primary" id="decideBtn" onclick="runDecideRoute()" disabled>Get verdict</button>
+        <p class="hint" id="routeHint">Pick a pickup and drop (or a "Try" example) to enable the verdict.</p>
+        <div id="routeResult" class="result"></div>
+      </div>
+
+      <div id="tab-ask" style="display:none;">
+        <div class="ask-row">
+          <input type="text" id="askInput" placeholder="e.g. should I auto to Andheri at 6pm, surge looks bad" />
+          <button class="primary" style="margin-top:0;" id="askBtn" onclick="runAsk()">Ask</button>
+        </div>
+        <p class="hint">The plain-language assistant matches against 11 well-known routes — try Andheri, BKC, Worli, Colaba, Powai.</p>
+        <div id="askResult" class="result"></div>
       </div>
     </div>
   </div>
@@ -246,74 +310,24 @@
     <p class="section-sub">Each layer does one job — the LLM is never the one doing arithmetic.</p>
     <div class="stack-grid">
       <div class="stack-card">
-        <div class="layer">Fare Engine</div>
+        <div class="layer">Routing</div>
+        <h3>OpenStreetMap (free)</h3>
+        <p>Photon geocoding + OSRM road distance — any Mumbai route, no Google, no billing account, no key. No-auto zone is a point-in-polygon test.</p>
+      </div>
+      <div class="stack-card">
+        <div class="layer">Fare + Surge</div>
         <h3>Deterministic Python</h3>
-        <p>Official RTO meter formula + modeled app rate cards (auto + car tiers). Every fare is reproducible and grep-able — never an LLM guess.</p>
+        <p>Official RTO meter formula + modeled app rate cards. Surge predicted from time + day + live weather (keyless Open-Meteo), labeled as a prediction.</p>
       </div>
       <div class="stack-card">
         <div class="layer">Decision Logic</div>
         <h3>Confidence engine</h3>
-        <p>Turns fare numbers into a verdict: gap-based confidence, surge-proof anchoring, no-auto-zone handling, and a car-tier "don't default to the cab" call-out.</p>
+        <p>Gap-based confidence, surge-proof anchoring, zone handling, and a car-tier "don't default to the cab" call-out. Never sounds surer than it is.</p>
       </div>
       <div class="stack-card">
-        <div class="layer">NL Assistant</div>
-        <h3>Claude (Haiku)</h3>
-        <p>Parses messy questions into structured inputs, and turns the verdict back into plain language. Never computes a fare — structurally can't.</p>
-      </div>
-      <div class="stack-card">
-        <div class="layer">API</div>
-        <h3>FastAPI</h3>
-        <p><code>/routes</code>, <code>/decide</code>, <code>/ask</code> — deployed on Render. The dropdown demo below hits <code>/decide</code> directly, no LLM cost.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section id="demo">
-  <div class="wrap">
-    <h2>Live demo</h2>
-    <p class="section-sub">Pick a real Mumbai route, or just ask in plain language.</p>
-
-    <div class="demo-panel">
-      <div class="demo-tabs">
-        <button class="demo-tab active" data-tab="picker" onclick="switchTab('picker')">Route picker</button>
-        <button class="demo-tab" data-tab="ask" onclick="switchTab('ask')">Ask in plain language</button>
-      </div>
-
-      <div id="tab-picker">
-        <div class="field-row">
-          <div>
-            <label for="routeSelect">Route</label>
-            <select id="routeSelect"></select>
-          </div>
-          <div>
-            <label for="timeSelect">Time of day</label>
-            <select id="timeSelect">
-              <option value="day">Day</option>
-              <option value="night">Night (12am–5am)</option>
-            </select>
-          </div>
-          <div>
-            <label for="surgeSelect">Surge scenario</label>
-            <select id="surgeSelect">
-              <option value="1.0">No surge (1.0x)</option>
-              <option value="1.3">Moderate (1.3x)</option>
-              <option value="1.5">High (1.5x)</option>
-              <option value="2.0">Very high (2.0x)</option>
-            </select>
-          </div>
-        </div>
-        <button class="primary" id="decideBtn" onclick="runDecide()">Get verdict</button>
-        <div id="decideResult" class="result"></div>
-      </div>
-
-      <div id="tab-ask" style="display:none;">
-        <div class="ask-row">
-          <input type="text" id="askInput" placeholder="e.g. should I auto to Andheri at 6pm, surge looks bad" />
-          <button class="primary" id="askBtn" onclick="runAsk()">Ask</button>
-        </div>
-        <p id="apiBaseNotice">Matches against the 11 preset routes above — try names like Andheri, BKC, Worli, Colaba, Powai.</p>
-        <div id="askResult" class="result"></div>
+        <div class="layer">NL Assistant + API</div>
+        <h3>Claude (Haiku) · FastAPI</h3>
+        <p>Claude parses questions and explains verdicts — never computes a fare. FastAPI serves <code>/decide_route</code>, <code>/ask</code>, deployed on Render.</p>
       </div>
     </div>
   </div>
@@ -327,24 +341,22 @@
       <div class="step">
         <span class="num">A</span>
         <h3>Decision engine: 22/22</h3>
-        <p>Verdict + confidence on 22 route/time/surge combinations checked against an independently re-derived RTO formula and the documented confidence thresholds — not just tested against its own code.</p>
+        <p>Verdict + confidence on 22 route/time/surge combinations checked against an independently re-derived RTO formula — not just tested against its own code.</p>
       </div>
       <div class="step">
         <span class="num">B</span>
         <h3>High-confidence precision: 100%</h3>
-        <p><b>Primary metric.</b> Of every route the NL assistant matched with confidence, 15/15 were correct (live Claude calls, not cached). A wrong high-confidence match is the failure mode this whole project exists to prevent.</p>
+        <p><b>Primary metric.</b> Of every route the NL assistant matched with confidence, 15/15 were correct (live Claude calls). A wrong confident match is the failure mode this project exists to prevent.</p>
       </div>
       <div class="step">
         <span class="num">C</span>
         <h3>Correct refusal: 6/6</h3>
-        <p>Out-of-scope queries (wrong city, gibberish, an unsupported South Mumbai pair) were all correctly declined instead of guessing a plausible-sounding wrong route.</p>
+        <p>Out-of-scope queries (wrong city, gibberish, an unsupported South Mumbai pair) were all correctly declined instead of guessing a plausible wrong route.</p>
       </div>
     </div>
     <p class="section-sub" style="margin-top:24px;">
-      Honest caveat: 21 NL test cases is enough to validate the design (confidence-gated refusal works, route
-      matching handles varied phrasing), not enough to claim the assistant is bulletproof. Harder adversarial
-      cases — typos, two known locations in one ambiguous query — are the natural next eval to add.
-      Full per-case results in <a href="https://github.com/nibhrit/meter-autos-mumbai/blob/main/evals/results.md" target="_blank">evals/results.md</a>.
+      Honest caveat: 21 NL test cases validates the design, not bulletproof reliability. Full per-case results in
+      <a href="https://github.com/nibhrit/meter-autos-mumbai/blob/main/evals/results.md" target="_blank">evals/results.md</a>.
     </p>
   </div>
 </section>
@@ -358,23 +370,101 @@
 <script>
   const API_BASE = "https://meter-autos-api.onrender.com";
 
+  const EXAMPLES = [
+    { origin: { label: "Andheri Station", lat: 19.1197, lon: 72.8461 }, dest: { label: "BKC", lat: 19.0580, lon: 72.8646 } },
+    { origin: { label: "Kurla Station", lat: 19.0653, lon: 72.8794 }, dest: { label: "Powai", lat: 19.1187, lon: 72.9073 } },
+    { origin: { label: "Dadar", lat: 19.0180, lon: 72.8440 }, dest: { label: "Colaba", lat: 18.9060, lon: 72.8150 } },
+  ];
+
+  let selected = { origin: null, dest: null };
+  let acTimers = {};
+
+  function toggleTheme() {
+    const html = document.documentElement;
+    const next = html.getAttribute("data-theme") === "dark" ? "light" : "dark";
+    html.setAttribute("data-theme", next);
+    document.getElementById("themeBtn").textContent = next === "dark" ? "Light mode" : "Dark mode";
+    try { localStorage.setItem("meterautos-theme", next); } catch (e) {}
+  }
+  (function initTheme() {
+    let saved = "dark";
+    try { saved = localStorage.getItem("meterautos-theme") || "dark"; } catch (e) {}
+    document.documentElement.setAttribute("data-theme", saved);
+    document.getElementById("themeBtn").textContent = saved === "dark" ? "Light mode" : "Dark mode";
+  })();
+
   function switchTab(tab) {
     document.querySelectorAll(".demo-tab").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
-    document.getElementById("tab-picker").style.display = tab === "picker" ? "block" : "none";
+    document.getElementById("tab-route").style.display = tab === "route" ? "block" : "none";
     document.getElementById("tab-ask").style.display = tab === "ask" ? "block" : "none";
   }
+  function toggleAdv() {
+    const p = document.getElementById("advPanel");
+    p.classList.toggle("open");
+    document.getElementById("advToggle").textContent = p.classList.contains("open") ? "Advanced ▴" : "Advanced ▾";
+  }
 
-  async function loadRoutes() {
+  function refreshDecideBtn() {
+    const ok = selected.origin && selected.dest;
+    document.getElementById("decideBtn").disabled = !ok;
+    document.getElementById("routeHint").style.display = ok ? "none" : "block";
+  }
+
+  function onAcInput(which) {
+    selected[which] = null;
+    refreshDecideBtn();
+    const val = document.getElementById(which + "Input").value.trim();
+    const listEl = document.getElementById(which + "-list");
+    if (val.length < 2) { listEl.style.display = "none"; return; }
+    clearTimeout(acTimers[which]);
+    acTimers[which] = setTimeout(() => fetchAc(which, val), 250);
+  }
+
+  async function fetchAc(which, val) {
+    const listEl = document.getElementById(which + "-list");
     try {
-      const res = await fetch(`${API_BASE}/routes`);
+      const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(val)}&limit=6&lat=19.076&lon=72.877&lang=en`;
+      const res = await fetch(url);
       const data = await res.json();
-      const sel = document.getElementById("routeSelect");
-      sel.innerHTML = data.routes.map(r =>
-        `<option value="${r.id}">${r.label} (${r.distance_km}km)${r.zone_restricted ? " — no-auto zone" : ""}</option>`
-      ).join("");
-    } catch (e) {
-      document.getElementById("routeSelect").innerHTML = `<option>Could not load routes — is the API running?</option>`;
-    }
+      const seen = new Set();
+      const items = [];
+      for (const f of data.features) {
+        const [lon, lat] = f.geometry.coordinates;
+        if (lat < 18.85 || lat > 19.30 || lon < 72.75 || lon > 73.10) continue;
+        const p = f.properties;
+        const name = p.name || p.street || val;
+        const bits = [p.name, p.suburb || p.district, p.city].filter(Boolean);
+        const label = [...new Set(bits)].join(", ") || name;
+        const key = label + lat + lon;
+        if (seen.has(key)) continue; seen.add(key);
+        items.push({ name, label, lat, lon });
+        if (items.length >= 6) break;
+      }
+      if (!items.length) { listEl.style.display = "none"; return; }
+      listEl.innerHTML = items.map((it, i) =>
+        `<div class="ac-item" onclick='pickAc("${which}", ${JSON.stringify(it).replace(/'/g, "&#39;")})'>
+           <span class="nm">${it.name}</span> <span class="sub">${it.label}</span>
+         </div>`).join("");
+      listEl.style.display = "block";
+    } catch (e) { listEl.style.display = "none"; }
+  }
+
+  function pickAc(which, item) {
+    selected[which] = { label: item.label, lat: item.lat, lon: item.lon };
+    document.getElementById(which + "Input").value = item.label;
+    document.getElementById(which + "-list").style.display = "none";
+    refreshDecideBtn();
+  }
+
+  function loadExample(i) {
+    const ex = EXAMPLES[i];
+    selected.origin = ex.origin; selected.dest = ex.dest;
+    document.getElementById("originInput").value = ex.origin.label;
+    document.getElementById("destInput").value = ex.dest.label;
+    document.getElementById("origin-list").style.display = "none";
+    document.getElementById("dest-list").style.display = "none";
+    refreshDecideBtn();
+    runDecideRoute();
   }
 
   function confClass(conf) {
@@ -388,54 +478,78 @@
       <span class="conf-pill">${confLabel} confidence</span>
       <p class="verdict-text">${d.verdict}</p>
       <p class="reasoning">${d.reasoning}</p>`;
-    if (d.surge_proof_note) html += `<div class="note surge">⚡ ${d.surge_proof_note}</div>`;
+
+    const tags = [];
+    if (d.distance_km != null) {
+      const src = d.distance_source === "osrm" ? "road distance" : "est. distance";
+      tags.push(`<span class="meta-tag"><b>${d.distance_km} km</b> ${src}</span>`);
+    }
+    if (d.time_of_day) tags.push(`<span class="meta-tag">${d.time_of_day}</span>`);
+    if (d.surge) {
+      const s = d.surge;
+      const t = s.overridden ? `surge ${s.multiplier}× (manual)` : `${s.label} · ${s.multiplier}×`;
+      tags.push(`<span class="meta-tag"><b>${t}</b></span>`);
+    }
+    if (tags.length) html += `<div class="meta-row">${tags.join("")}</div>`;
+
+    if (d.surge && d.surge.is_prediction && d.surge.weather_note) {
+      html += `<div class="note surge">⚡ Predicted surge: ${d.surge.reasons.join(", ")}. ${d.surge.weather_note} The street meter is surge-proof.</div>`;
+    } else if (d.surge_proof_note) {
+      html += `<div class="note surge">⚡ ${d.surge_proof_note}</div>`;
+    }
     if (d.car_tier_insight) html += `<div class="note car-trap">🚗 ${d.car_tier_insight}</div>`;
     if (d.zone_flag) html += `<div class="note zone">📍 ${d.zone_flag}</div>`;
+
     html += `<table class="fare-table"><thead><tr><th>Option</th><th>Tier</th><th>Fare</th></tr></thead><tbody>`;
-    if (d.meter_fare !== null && d.meter_fare !== undefined) {
+    if (d.meter_fare != null) {
       html += `<tr><td class="official">Street meter (official)</td><td>auto</td><td class="official">Rs.${d.meter_fare}</td></tr>`;
     }
     d.app_options.forEach(o => {
       html += `<tr><td>${o.provider}</td><td>${o.tier}</td><td>Rs.${o.fare} <span class="tag">${o.note}</span></td></tr>`;
     });
-    html += `</tbody></table></div>`;
+    html += `</tbody></table>`;
+    if (d.distance_source === "haversine_estimate") {
+      html += `<p class="hint">Distance is a straight-line estimate here (road-routing service unreachable); fares scale with it.</p>`;
+    }
+    html += `</div>`;
     return html;
   }
 
-  async function runDecide() {
+  async function runDecideRoute() {
+    if (!selected.origin || !selected.dest) return;
     const btn = document.getElementById("decideBtn");
     btn.disabled = true;
-    document.getElementById("decideResult").innerHTML = `<p class="loading">Computing...</p>`;
+    document.getElementById("routeResult").innerHTML = `<p class="loading">Computing… (first call may wake the server)</p>`;
     try {
-      const body = {
-        route_id: document.getElementById("routeSelect").value,
-        time_of_day: document.getElementById("timeSelect").value,
-        surge: parseFloat(document.getElementById("surgeSelect").value),
-      };
-      const res = await fetch(`${API_BASE}/decide`, {
+      const body = { origin: selected.origin, dest: selected.dest };
+      const tod = document.getElementById("timeSelect").value;
+      const surge = document.getElementById("surgeSelect").value;
+      if (tod) body.time_of_day = tod;
+      if (surge) body.surge_override = parseFloat(surge);
+      const res = await fetch(`${API_BASE}/decide_route`, {
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
       });
-      if (!res.ok) throw new Error(`API returned ${res.status}`);
+      if (!res.ok) throw new Error(`API ${res.status}`);
       const d = await res.json();
-      document.getElementById("decideResult").innerHTML = decisionCardHtml(d);
+      document.getElementById("routeResult").innerHTML = decisionCardHtml(d);
     } catch (e) {
-      document.getElementById("decideResult").innerHTML = `<p class="error-box">Couldn't reach the API (${e.message}). Make sure the backend is running and API_BASE in this page points to it.</p>`;
+      document.getElementById("routeResult").innerHTML = `<p class="error-box">Couldn't reach the API (${e.message}). If this is the live demo, the free server may be waking up — try again in ~30s.</p>`;
     } finally {
       btn.disabled = false;
     }
   }
 
   async function runAsk() {
-    const btn = document.getElementById("askBtn");
     const query = document.getElementById("askInput").value.trim();
     if (!query) return;
+    const btn = document.getElementById("askBtn");
     btn.disabled = true;
-    document.getElementById("askResult").innerHTML = `<p class="loading">Thinking...</p>`;
+    document.getElementById("askResult").innerHTML = `<p class="loading">Thinking…</p>`;
     try {
       const res = await fetch(`${API_BASE}/ask`, {
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query }),
       });
-      if (!res.ok) throw new Error(`API returned ${res.status}`);
+      if (!res.ok) throw new Error(`API ${res.status}`);
       const data = await res.json();
       if (!data.matched) {
         document.getElementById("askResult").innerHTML = `<div class="reply-box">${data.message}</div>`;
@@ -451,8 +565,12 @@
   }
 
   document.getElementById("askInput").addEventListener("keydown", e => { if (e.key === "Enter") runAsk(); });
-
-  loadRoutes();
+  document.addEventListener("click", e => {
+    if (!e.target.closest(".ac-wrap")) {
+      document.getElementById("origin-list").style.display = "none";
+      document.getElementById("dest-list").style.display = "none";
+    }
+  });
 </script>
 
 </body>
