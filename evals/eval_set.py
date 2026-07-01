@@ -41,29 +41,45 @@ DECISION_CASES = [
     ("bandra_fort", "night", 1.3),     # zone-restricted + night + surge
 ]
 
-# Each NL case: (query, expected_route_id_or_None)
-# expected_route_id is None for queries the assistant should REFUSE to match
-# (out-of-scope city, gibberish, no real route) rather than guess at.
+# NL cases. Since the assistant now handles ARBITRARY Mumbai routes (geocoded),
+# it no longer matches preset IDs. A case is:
+#   {query, should_match, expect_zone (bool|None), expect_in_labels (substrings)}
+# - should_match=True  -> a real Mumbai pickup+drop the assistant should resolve.
+# - should_match=False -> vague / out-of-region / gibberish it should REFUSE.
+# - expect_zone: if set, the resolved trip must (True) / must not (False) be
+#   flagged as no-auto-zone. Verifies the point-in-polygon check via the NL path.
+# - expect_in_labels: substrings that must appear in the resolved origin+dest
+#   labels (loose sanity check that the right places were geocoded).
 NL_CASES = [
-    ("auto from Andheri Station to Versova", "andheri_versova"),
-    ("should I book a cab from Bandra station to BKC right now", "bandra_bkc"),
-    ("Kurla to Powai at night", "kurla_powai"),
-    ("going from Andheri to Borivali, what's cheaper", "andheri_borivali"),
-    ("Goregaon to Malad, quick trip", "goregaon_malad"),
-    ("Vile Parle to the airport terminal 2", "vileparle_airport"),
-    ("Mulund to Thane during rush hour", "mulund_thane"),
-    ("Powai to Chembur tonight", "powai_chembur"),
-    ("Dadar to Worli, is auto even an option", "dadar_worli"),
-    ("CST to Colaba quick", "cst_colaba"),
-    ("from Bandra all the way to Fort", "bandra_fort"),
-    ("Andheri Station to Versova during heavy rain, surge must be insane", "andheri_versova"),
-    ("I'm near Kurla railway station going towards Powai", "kurla_powai"),
-    ("evening commute Mulund to Thane around 7pm", "mulund_thane"),
-    ("after midnight ride from Powai to Chembur", "powai_chembur"),
-    ("best way from Mars to Jupiter", None),
-    ("auto from my house to the office", None),
-    ("how much to go from Delhi to Mumbai", None),
-    ("asdkjfh aksjdfh random gibberish query", None),
-    ("from Churchgate to Marine Drive", None),
-    ("from Andheri to some random unknown place XYZ123", None),
+    {"query": "auto from Andheri Station to Versova right now", "should_match": True,
+     "expect_zone": False, "expect_in_labels": ["andheri", "versova"]},
+    {"query": "BKC from Bandra at 6pm, surge is crazy", "should_match": True,
+     "expect_zone": False, "expect_in_labels": ["bandra", "bkc"]},
+    {"query": "auto from Lokhandwala to Nariman Point around 1am", "should_match": True,
+     "expect_zone": True, "expect_in_labels": ["lokhandwala", "nariman"]},
+    {"query": "Kurla to Powai tonight", "should_match": True,
+     "expect_zone": False, "expect_in_labels": ["kurla", "powai"]},
+    {"query": "Dadar to Worli, is auto even an option", "should_match": True,
+     "expect_zone": True, "expect_in_labels": ["dadar", "worli"]},
+    {"query": "Ghatkopar to Chembur in the evening", "should_match": True,
+     "expect_zone": False, "expect_in_labels": ["ghatkopar", "chembur"]},
+    {"query": "Juhu to Andheri quick", "should_match": True,
+     "expect_zone": False, "expect_in_labels": ["juhu", "andheri"]},
+    {"query": "from Bandra all the way to Fort", "should_match": True,
+     "expect_zone": True, "expect_in_labels": ["bandra", "fort"]},
+    {"query": "Goregaon to Malad during heavy rain, surge must be insane", "should_match": True,
+     "expect_zone": False, "expect_in_labels": ["goregaon", "malad"]},
+    {"query": "Colaba to Churchgate", "should_match": True,
+     "expect_zone": True, "expect_in_labels": ["colaba", "churchgate"]},
+    {"query": "Powai to Vikhroli after midnight", "should_match": True,
+     "expect_zone": False, "expect_in_labels": ["powai", "vikhroli"]},
+    {"query": "Mulund to Thane during rush hour", "should_match": True,
+     "expect_zone": False, "expect_in_labels": ["mulund", "thane"]},
+
+    {"query": "how much to go from Delhi to Mumbai", "should_match": False},
+    {"query": "best way from Mars to Jupiter", "should_match": False},
+    {"query": "asdkjfh aksjdfh random gibberish query", "should_match": False},
+    {"query": "auto from my house to the office", "should_match": False},
+    {"query": "should I take an auto right now", "should_match": False},
+    {"query": "from Bangalore to Chennai", "should_match": False},
 ]

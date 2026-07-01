@@ -101,20 +101,29 @@ def run_decision_eval():
 
 def run_nl_eval():
     results = []
-    for query, expected_route in NL_CASES:
+    for case in NL_CASES:
+        query = case["query"]
+        should_match = case["should_match"]
         r = assistant_ask(query)
-        actual_route = r["route"]["id"] if r["matched"] else None
-        should_match = expected_route is not None
+        matched = r["matched"]
+        resolved = r["route"]["label"] if matched else None
+
         if should_match:
-            outcome = "correct_match" if actual_route == expected_route else (
-                "missed" if actual_route is None else "wrong_match"
-            )
+            if not matched:
+                outcome = "missed"
+            else:
+                labels = r["route"]["label"].lower()
+                labels_ok = all(sub in labels for sub in case.get("expect_in_labels", []))
+                zone_exp = case.get("expect_zone")
+                zone_actual = r["decision"].zone_flag is not None
+                zone_ok = zone_exp is None or zone_exp == zone_actual
+                outcome = "correct_match" if (labels_ok and zone_ok) else (
+                    "wrong_zone" if not zone_ok else "wrong_place")
         else:
-            outcome = "correct_refusal" if actual_route is None else "false_match"
-        results.append({
-            "query": query, "expected_route": expected_route, "actual_route": actual_route,
-            "should_match": should_match, "outcome": outcome,
-        })
+            outcome = "correct_refusal" if not matched else "false_match"
+
+        results.append({"query": query, "should_match": should_match,
+                        "resolved": resolved, "outcome": outcome})
     return results
 
 
@@ -126,7 +135,7 @@ def summarize(decision_results, nl_results) -> str:
     should_not_match = [r for r in nl_results if not r["should_match"]]
     correct_matches = sum(1 for r in should_match if r["outcome"] == "correct_match")
     correct_refusals = sum(1 for r in should_not_match if r["outcome"] == "correct_refusal")
-    all_matched = [r for r in nl_results if r["actual_route"] is not None]
+    all_matched = [r for r in nl_results if r["resolved"] is not None]
     matched_correct = sum(1 for r in all_matched if r["outcome"] == "correct_match")
 
     coverage = correct_matches / len(should_match) if should_match else 0
@@ -142,21 +151,25 @@ def summarize(decision_results, nl_results) -> str:
         for r in decision_results:
             if not r["passed"]:
                 lines.append(f"- {r['route_id']} ({r['time_of_day']}, {r['surge']}x): expected {r['expected']}, got {r['actual']}\n")
-    lines.append("\n## Part B — NL assistant route matching (live Claude calls)\n")
+    lines.append("\n## Part B — NL assistant, arbitrary Mumbai routes (live Claude + geocoding)\n")
+    lines.append("The assistant now resolves any Mumbai pickup/drop (not just presets): Claude extracts "
+                  "the place names, deterministic code geocodes them, and a mis-named or non-Mumbai place "
+                  "fails to geocode and is refused rather than guessed. A match is 'correct' only if the right "
+                  "places resolved AND the no-auto-zone flag is right.\n")
     lines.append(f"- **High-confidence precision (primary metric): {high_conf_precision:.0%}** "
-                  f"({matched_correct}/{len(all_matched)}) — of all routes the assistant matched, how many were correct. "
-                  f"This is the number that matters: a wrong high-confidence match is the failure mode that breaks trust.\n")
+                  f"({matched_correct}/{len(all_matched)}) — of every trip the assistant resolved, how many were "
+                  f"correct (right places + right zone call). A confidently-wrong answer is the failure mode this "
+                  f"project exists to prevent.\n")
     lines.append(f"- **Coverage (secondary): {coverage:.0%}** ({correct_matches}/{len(should_match)}) — "
-                  f"of queries with a real matching route, how many it successfully matched instead of punting.\n")
+                  f"of queries with a real Mumbai pickup+drop, how many resolved correctly instead of punting.\n")
     lines.append(f"- **Correct refusal rate: {refusal_rate:.0%}** ({correct_refusals}/{len(should_not_match)}) — "
-                  f"of out-of-scope queries, how many it correctly declined rather than guessing.\n")
+                  f"of vague / out-of-region / gibberish queries, how many it declined rather than guessing.\n")
     lines.append("\n**Per-case detail:**\n")
-    lines.append("| Query | Expected | Actual | Outcome |")
+    lines.append("| Query | Should match | Resolved to | Outcome |")
     lines.append("|---|---|---|---|")
     for r in nl_results:
-        exp = r["expected_route"] or "*(no match)*"
-        act = r["actual_route"] or "*(no match)*"
-        lines.append(f"| {r['query']} | {exp} | {act} | {r['outcome']} |")
+        res = r["resolved"] or "*(refused)*"
+        lines.append(f"| {r['query']} | {r['should_match']} | {res} | {r['outcome']} |")
     return "\n".join(lines)
 
 
@@ -169,10 +182,10 @@ if __name__ == "__main__":
         if not r["passed"]:
             print(f"  FAIL: {r['route_id']} ({r['time_of_day']}, {r['surge']}x) expected={r['expected']} actual={r['actual']}")
 
-    print("\nRunning NL assistant eval (live Claude calls, this takes a bit)...")
+    print("\nRunning NL assistant eval (live Claude + geocoding, this takes a bit)...")
     nl_results = run_nl_eval()
     for r in nl_results:
-        print(f"  [{r['outcome']:15s}] \"{r['query'][:55]}\" -> {r['actual_route']}")
+        print(f"  [{r['outcome']:15s}] \"{r['query'][:50]}\" -> {r['resolved']}")
 
     report = summarize(decision_results, nl_results)
     out_path = os.path.join(os.path.dirname(__file__), "results.md")

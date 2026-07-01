@@ -95,11 +95,18 @@ def post_ask(req: AskRequest):
     result = assistant_ask(req.query)
     if not result["matched"]:
         return {"matched": False, "message": result["message"]}
+    decision = _decision_to_dict(result["decision"])
+    # Attach the same route metadata as /decide_route so the frontend renders
+    # distance/surge tags consistently across both tabs.
+    decision["distance_km"] = result["distance_km"]
+    decision["distance_source"] = result["distance_source"]
+    decision["time_of_day"] = result["time_of_day"]
+    decision["surge"] = result["surge"]
     return {
         "matched": True,
         "route": result["route"],
         "params": result["params"],
-        "decision": _decision_to_dict(result["decision"]),
+        "decision": decision,
         "reply": result["reply"],
     }
 

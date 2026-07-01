@@ -1,16 +1,17 @@
 """
 NL assistant layer. Claude does exactly two jobs here, and never a third:
 
-  1. Parse a messy human query ("should I auto to Andheri at 6pm?") into the
-     structured inputs the deterministic engine needs: route_id, time_of_day,
-     surge_multiplier.
+  1. Parse a messy human query ("should I auto from Lokhandwala to Nariman
+     Point at 9pm?") into structured inputs: a free-text pickup and drop, plus
+     time-of-day and a surge signal inferred from the wording.
   2. Turn the engine's Decision back into a plain-language reply.
 
-Claude never computes a fare. The actual rupee numbers always come from
-fare_engine.py / decision.py — deterministic, reproducible, and grep-able.
-This split is the product decision worth defending in an interview: an LLM
-hallucinating a fare is the one failure mode this whole project exists to
-prevent, so it's structurally impossible here, not just "tested for."
+Claude never computes a fare, and never resolves a place to coordinates — it
+only extracts the place *names* as strings. Geocoding (Photon), distance
+(OSRM), the zone check, and the fare math are all deterministic code. So the
+NL tab now handles any Mumbai route, exactly like the Route tab, while the LLM
+still can't hallucinate a fare or a location — it can only mis-name a place,
+which then fails to geocode and is refused rather than guessed.
 """
 
 import json
@@ -19,9 +20,9 @@ import os
 from anthropic import Anthropic
 from dotenv import load_dotenv
 
-from decision import decide, Decision
+import geo
+from decision import decide_core, Decision
 from fare_engine import TimeOfDay
-from routes import list_routes
 
 load_dotenv()
 
@@ -37,24 +38,28 @@ def _get_client() -> Anthropic:
 
 
 _PARSE_TOOL = {
-    "name": "extract_trip_params",
-    "description": "Extract structured trip parameters from a natural-language ride query, matched against a fixed list of known routes.",
+    "name": "extract_trip",
+    "description": "Extract a pickup place, a drop place, and trip context from a natural-language ride query about Mumbai.",
     "input_schema": {
         "type": "object",
         "properties": {
-            "route_id": {
+            "pickup": {
                 "type": ["string", "null"],
-                "description": "Best matching route id from the provided list, or null if nothing matches well.",
+                "description": "The pickup/origin place name as stated (a real Mumbai locality/landmark), or null if none is clearly given.",
             },
-            "route_match_confidence": {
+            "destination": {
+                "type": ["string", "null"],
+                "description": "The drop/destination place name as stated, or null if none is clearly given.",
+            },
+            "extraction_confidence": {
                 "type": "string",
-                "enum": ["high", "low", "none"],
-                "description": "How sure you are route_id is the route the user meant.",
+                "enum": ["high", "low"],
+                "description": "'high' only if BOTH a clear pickup and a clear destination place are present and look like real Mumbai locations.",
             },
             "time_of_day": {
                 "type": "string",
                 "enum": ["day", "night"],
-                "description": "'night' only if a time between 12am-5am is stated or clearly implied; default 'day' otherwise.",
+                "description": "'night' only if a time between 12am-5am is stated or clearly implied; otherwise 'day'.",
             },
             "surge_multiplier": {
                 "type": "number",
@@ -62,30 +67,30 @@ _PARSE_TOOL = {
             },
             "surge_reasoning": {
                 "type": "string",
-                "description": "One short clause explaining the surge guess.",
+                "description": "One short clause explaining the surge guess (e.g. 'rush hour + heavy rain').",
             },
         },
-        "required": ["route_match_confidence", "time_of_day", "surge_multiplier"],
+        "required": ["extraction_confidence", "time_of_day", "surge_multiplier"],
     },
 }
 
 
 def _parse_query(query: str) -> dict:
-    routes = list_routes()
-    routes_text = "\n".join(f"- {r['id']}: {r['label']} ({r['distance_km']} km)" for r in routes)
     client = _get_client()
     resp = client.messages.create(
         model=MODEL,
         max_tokens=512,
         tools=[_PARSE_TOOL],
-        tool_choice={"type": "tool", "name": "extract_trip_params"},
+        tool_choice={"type": "tool", "name": "extract_trip"},
         messages=[{
             "role": "user",
             "content": (
-                f"Known routes:\n{routes_text}\n\n"
                 f"User query: \"{query}\"\n\n"
-                f"Extract trip parameters. Only set route_match_confidence to 'high' if the "
-                f"origin and/or destination clearly correspond to one specific known route."
+                f"Extract the pickup and destination place names for this Mumbai ride, plus time "
+                f"and surge context. Only set extraction_confidence to 'high' if both a real pickup "
+                f"and a real destination in the Mumbai area are clearly present. If a place is "
+                f"missing, vague ('my house'), or clearly not in Mumbai (e.g. Delhi, Mars), set "
+                f"extraction_confidence to 'low'."
             ),
         }],
     )
@@ -131,40 +136,68 @@ def _explain(decision: Decision, route_label: str, params: dict) -> str:
     return resp.content[0].text
 
 
+def _refuse(message: str, params: dict) -> dict:
+    return {"matched": False, "message": message, "params": params}
+
+
 def ask(query: str) -> dict:
-    """Full pipeline: parse -> decide (deterministic) -> explain."""
+    """Full pipeline: parse -> geocode -> decide (deterministic) -> explain."""
     params = _parse_query(query)
 
-    if params.get("route_match_confidence") != "high" or not params.get("route_id"):
-        available = ", ".join(r["label"] for r in list_routes())
-        return {
-            "matched": False,
-            "message": (
-                f"I couldn't confidently match that to a known route in this demo. "
-                f"Try one of: {available}."
-            ),
-            "params": params,
-        }
+    pickup = (params.get("pickup") or "").strip()
+    dest = (params.get("destination") or "").strip()
+    if params.get("extraction_confidence") != "high" or not pickup or not dest:
+        return _refuse(
+            "I couldn't pull a clear Mumbai pickup and drop from that. Try naming both, "
+            "e.g. \"auto from Lokhandwala to Nariman Point at 9pm?\"",
+            params,
+        )
 
-    route = next((r for r in list_routes() if r["id"] == params["route_id"]), None)
-    if route is None:
-        return {
-            "matched": False,
-            "message": "Claude picked a route_id that isn't in our list — treating as no match.",
-            "params": params,
-        }
+    # Claude named the places; deterministic code resolves them. A mis-named or
+    # non-Mumbai place returns no geocode hit and is refused, not guessed.
+    try:
+        o_hits = geo.geocode(pickup, limit=1)
+        d_hits = geo.geocode(dest, limit=1)
+    except Exception:
+        return _refuse("The geocoding service is unreachable right now — try again in a moment.", params)
+
+    missing = [name for name, hits in ((pickup, o_hits), (dest, d_hits)) if not hits]
+    if missing:
+        return _refuse(f"I couldn't find {' or '.join(missing)} as a place in Mumbai. Check the spelling?", params)
+
+    o, d = o_hits[0], d_hits[0]
+    dist = geo.route_distance(o.lat, o.lon, d.lat, d.lon)
+    dest_in_zone = geo.in_no_auto_zone(d.lat, d.lon)
+    origin_in_zone = geo.in_no_auto_zone(o.lat, o.lon)
+    zone_restricted = dest_in_zone or origin_in_zone
+    zone_place = d.label if dest_in_zone else (o.label if origin_in_zone else d.label)
 
     tod = TimeOfDay.NIGHT if params["time_of_day"] == "night" else TimeOfDay.DAY
     surge = round(float(params["surge_multiplier"]), 2)
-    decision = decide(route["id"], tod, surge)
-    reply = _explain(decision, route["label"], params)
+    decision = decide_core(dist["km"], zone_restricted, zone_place, tod, surge)
+
+    route_label = f"{o.label} → {d.label}"
+    reply = _explain(decision, route_label, params)
+
+    surge_info = {
+        "multiplier": surge,
+        "label": "Inferred from your question" if surge != 1.0 else "No surge",
+        "reasons": [params.get("surge_reasoning")] if params.get("surge_reasoning") else [],
+        "weather_note": "",
+        "is_prediction": False,
+        "overridden": False,
+    }
 
     return {
         "matched": True,
-        "route": route,
+        "route": {"label": route_label, "origin_label": o.label, "dest_label": d.label},
         "params": params,
         "decision": decision,
         "reply": reply,
+        "distance_km": dist["km"],
+        "distance_source": dist["source"],
+        "time_of_day": tod.value,
+        "surge": surge_info,
     }
 
 
@@ -172,15 +205,16 @@ if __name__ == "__main__":
     test_queries = [
         "should I take an auto from Andheri Station to Versova right now?",
         "is it worth taking an auto to BKC from Bandra at 6pm, traffic seems heavy and surge is crazy",
-        "I'm at Kurla station heading to Powai around 1am, auto or app?",
+        "auto from Lokhandwala to Nariman Point around 1am?",   # not a preset; Nariman Point = no-auto zone
         "going from Dadar to Worli, what should I book?",
-        "best way from Mars to Jupiter",
+        "how much from Delhi to Mumbai",                          # out of region -> refuse
+        "best way from Mars to Jupiter",                          # gibberish -> refuse
     ]
     for q in test_queries:
         print(f"\n=== Q: {q} ===")
         result = ask(q)
         if result["matched"]:
-            print(f"  Route: {result['route']['label']}")
+            print(f"  Route: {result['route']['label']}  ({result['distance_km']} km, {result['distance_source']})")
             print(f"  Parsed: tod={result['params']['time_of_day']} surge={result['params']['surge_multiplier']} ({result['params'].get('surge_reasoning')})")
             print(f"  Verdict: {result['decision'].verdict} [{result['decision'].confidence}]")
             print(f"  Reply: {result['reply']}")
