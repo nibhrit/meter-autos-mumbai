@@ -19,10 +19,12 @@ plain "toss-up, here's your surge-proof anchor" when they're not.
 ## Stack
 
 - **Fare engine** (`backend/fare_engine.py`) — deterministic Mumbai RTO meter math + modeled app fares
+- **Routing** (`backend/geo.py`) — free OpenStreetMap: Photon geocoding + OSRM road distance (haversine fallback); no-auto zone as a point-in-polygon test. No Google, no key, no billing account.
+- **Surge predictor** (`backend/surge.py`) — predicts surge *likelihood* from time + day + live weather (keyless Open-Meteo). Labeled as a prediction, never live actual surge.
 - **Decision logic** (`backend/decision.py`) — verdict + calibrated confidence + zone/surge handling
 - **NL assistant** (`backend/assistant.py`) — Claude front door; never computes a fare, only translates
-- **API** (`backend/main.py`) — FastAPI, `/routes`, `/decide`, `/ask`. Deployed on Render via [`render.yaml`](render.yaml).
-- **Frontend** (`frontend/index.html`) — single-page demo. Deployed on GitHub Pages via Actions.
+- **API** (`backend/main.py`) — FastAPI, `/decide_route`, `/geocode`, `/decide`, `/ask`. Deployed on Render via [`render.yaml`](render.yaml).
+- **Frontend** (`frontend/index.html`) — single-page demo with a light/dark theme toggle and autocomplete route input. Deployed on GitHub Pages via Actions.
 - **Evals** (`evals/`) — decision engine regression suite + live NL assistant precision eval. See [`evals/results.md`](evals/results.md).
 
 ## Running locally
